@@ -738,7 +738,7 @@ const pointsVS = /* glsl */`
   varying float vRepulsion;
 
 
-  attribute float aRandom;
+  attribute vec3 aRandom;
 
   float hash13(vec3 p) {
     p = fract(p * vec3(443.8975, 397.2973, 491.1871));
@@ -761,12 +761,12 @@ const pointsVS = /* glsl */`
 
     float amp = uFloatAmp + mouseFPre * mouseFPre * uMaxFloatAmp;
 
-    float h = aRandom * 6.2831853;
+    vec3 phase = aRandom * 6.2831853;
     float ts = uTime * uFloatSpeed;
     vec3 wave = vec3(
-      sin(ts * 0.7 + h),
-      cos(ts * 0.9 + h * 1.3),
-      sin(ts * 0.6 + h * 0.7 + 1.7)
+      sin(ts * 0.7 + phase.x),
+      cos(ts * 0.9 + phase.y),
+      sin(ts * 0.6 + phase.z)
     ) * amp;
     worldPos.xyz += wave;
 
@@ -980,13 +980,13 @@ function subsampleGeometry(geo, stride) {
   }
   // Per-vertex random phase — breaks the coherent swirl that hash13(position)
   // produces when all vertices sit in a tight world-space box.
-  const newRand = new Float32Array(kept);
-  for (let j = 0; j < kept; j++) newRand[j] = Math.random();
+  const newRand = new Float32Array(kept * 3);
+  for (let j = 0; j < kept * 3; j++) newRand[j] = Math.random();
 
   const ng = new THREE.BufferGeometry();
   ng.setAttribute('position', new THREE.BufferAttribute(newPos, 3));
   if (newUv)   ng.setAttribute('uv',         new THREE.BufferAttribute(newUv, 2));
-  ng.setAttribute('aRandom',  new THREE.BufferAttribute(newRand, 1));
+  ng.setAttribute('aRandom',  new THREE.BufferAttribute(newRand, 3));
   // Per-vertex random — guaranteed uncorrelated phase across vertices regardless of
   // their world-space coords. (hash13(position) gives near-coherent phases when all
   // verts are inside a tight world-space box, e.g. a 1.7m skinned character.)
