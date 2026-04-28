@@ -135,6 +135,7 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 0 12px var(--accent-dim);
 }
 
+#hud.mobile-hidden { display: none; }
 #hud {
   bottom: 0; left: 0; right: 0; padding: 10px 24px;
   font-family: 'JetBrains Mono', monospace;
@@ -439,7 +440,7 @@ const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 40
 // GLB loaded — enable the enter overlay
     const enterEl2 = document.getElementById('enter');
     enterEl2.classList.remove('loading');
-    document.getElementById('enter-title').textContent = 'Click to enter';
+    document.getElementById('enter-title').textContent = isMobile ? 'Tap to enter' : 'Click to enter';
 
     camera.position.fromArray(SPAWN.position);
 camera.lookAt(SPAWN.lookAt[0], SPAWN.lookAt[1], SPAWN.lookAt[2]);
@@ -482,6 +483,7 @@ let rtPoints = makeRT();
 // =============================================================
 //  POINTER LOCK + WASD
 // =============================================================
+const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 1024);
 const controls = new PointerLockControls(camera, renderer.domElement);
 
 const move = { fwd: 0, right: 0, up: 0, sprint: false };
@@ -510,20 +512,64 @@ function startAudio() {
   audioEls.forEach(a => a.play().catch(() => {}));
 }
 
-function tryLock() {
-  if (!controls.isLocked) {
-    startAudio();
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    }
+let entered = false;
+
+function enterScene() {
+  if (entered) return;
+  startAudio();
+  if (!isMobile && !document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+  if (isMobile) {
+    // Mobile: no pointer lock — just dismiss overlay directly
+    entered = true;
+    enterEl.classList.add('hidden');
+    document.body.classList.add('locked');
+    document.getElementById('hud')?.classList.add('mobile-hidden');
+  } else {
+    // Desktop: use pointer lock
     try { controls.lock(); }
     catch (e) { console.error('pointer lock failed:', e); }
   }
 }
-enterEl.addEventListener('click', tryLock);
-renderer.domElement.addEventListener('click', tryLock);
-controls.addEventListener('lock',   () => { enterEl.classList.add('hidden'); document.body.classList.add('locked'); });
-controls.addEventListener('unlock', () => { enterEl.classList.remove('hidden'); document.body.classList.remove('locked'); });
+
+enterEl.addEventListener('click', enterScene);
+enterEl.addEventListener('touchend', (e) => { e.preventDefault(); enterScene(); });
+renderer.domElement.addEventListener('click', () => { if (!isMobile) enterScene(); });
+
+controls.addEventListener('lock',   () => { entered = true; enterEl.classList.add('hidden'); document.body.classList.add('locked'); });
+controls.addEventListener('unlock', () => { if (!isMobile) { entered = false; enterEl.classList.remove('hidden'); document.body.classList.remove('locked'); } });
+
+// =============================================================
+//  MOBILE TOUCH CONTROLS — drag to look around
+// =============================================================
+if (isMobile) {
+  let touchStartX = 0, touchStartY = 0;
+  const sensitivity = 0.004;
+  let euler = new THREE.Euler(0, 0, 0, 'YXZ');
+
+  renderer.domElement.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  renderer.domElement.addEventListener('touchmove', (e) => {
+    if (!entered || e.touches.length !== 1) return;
+    e.preventDefault();
+    const dx = e.touches[0].clientX - touchStartX;
+    const dy = e.touches[0].clientY - touchStartY;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+
+    euler.setFromQuaternion(camera.quaternion);
+    euler.y -= dx * sensitivity;
+    euler.x -= dy * sensitivity;
+    euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, euler.x));
+    camera.quaternion.setFromEuler(euler);
+  }, { passive: false });
+}
 
 function nudgeSlider(id, delta) {
   const el = document.getElementById(id);
@@ -581,6 +627,14 @@ window.addEventListener('mousemove', (e) => {
   mouseNDC.x =  (e.clientX / innerWidth)  * 2 - 1;
   mouseNDC.y = -((e.clientY / innerHeight) * 2 - 1);
 });
+
+// Mobile: update lens center from touch position
+window.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 1) {
+    mouseNDC.x =  (e.touches[0].clientX / innerWidth)  * 2 - 1;
+    mouseNDC.y = -((e.touches[0].clientY / innerHeight) * 2 - 1);
+  }
+}, { passive: true });
 
 // =============================================================
 //  SHARED UNIFORMS
@@ -1020,7 +1074,7 @@ loader.load(
     // GLB loaded — enable the enter overlay
     const enterEl2 = document.getElementById('enter');
     enterEl2.classList.remove('loading');
-    document.getElementById('enter-title').textContent = 'Click to enter';
+    document.getElementById('enter-title').textContent = isMobile ? 'Tap to enter' : 'Click to enter';
 
     camera.position.fromArray(SPAWN.position);
     camera.lookAt(SPAWN.lookAt[0], SPAWN.lookAt[1], SPAWN.lookAt[2]);
