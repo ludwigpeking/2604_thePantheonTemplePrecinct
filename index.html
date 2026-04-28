@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Pantheon — Temple Precinct</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg-deep:    #070914;
+  --bg-panel:   rgba(13, 17, 30, 0.78);
+  --border:     rgba(244, 236, 214, 0.08);
+  --border-hi:  rgba(244, 236, 214, 0.18);
+  --text:       #d8d3c2;
+  --muted:      #6a7080;
+  --accent:     #ffb86c;
+  --accent-dim: rgba(255, 184, 108, 0.35);
+  --cream:      #f4ecd6;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; height: 100%; overflow: hidden;
+  background: var(--bg-deep); color: var(--text);
+  font-family: 'Cormorant Garamond', serif; font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+canvas { display: block; cursor: crosshair; }
+
+body::after {
+  content: ''; position: fixed; inset: 0; pointer-events: none;
+  z-index: 100; opacity: 0.05; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(255,184,108,0.04), transparent 60%),
+    radial-gradient(ellipse at 80% 90%, rgba(108,132,255,0.04), transparent 55%);
+}
+
+.panel {
+  position: absolute; background: var(--bg-panel);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border: 1px solid var(--border); border-radius: 1px;
+  user-select: none; z-index: 10;
+}
+
+#tag {
+  top: 24px; left: 24px; padding: 20px 24px 18px;
+  min-width: 320px; border-left: 2px solid var(--accent);
+}
+.tag-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 10px;
+}
+.tag-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 32px; font-weight: 300; font-style: italic;
+  letter-spacing: 0.01em; color: var(--cream);
+  line-height: 1.05; margin-bottom: 4px;
+}
+.tag-subtitle {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 14px; font-style: italic; color: var(--muted);
+  letter-spacing: 0.02em; margin-bottom: 18px;
+}
+.tag-divider { height: 1px; background: var(--border-hi); margin: 14px 0 12px; }
+.tag-stats {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px; color: var(--muted);
+  line-height: 1.85; letter-spacing: 0.04em;
+  font-feature-settings: 'tnum' 1;
+}
+.tag-stats span.v { color: var(--cream); }
+
+#controls-panel {
+  top: 24px; right: 24px; padding: 18px 22px;
+  min-width: 280px; border-right: 2px solid var(--accent);
+  max-height: calc(100vh - 48px); overflow-y: auto;
+}
+.ctrl-header {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 14px;
+}
+.ctrl-row { margin-bottom: 11px; }
+.ctrl-row:last-child { margin-bottom: 0; }
+.ctrl-section {
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px dashed var(--border-hi);
+}
+.ctrl-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+.ctrl-section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8.5px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 10px; opacity: 0.7;
+}
+.ctrl-label-line {
+  display: flex; justify-content: space-between;
+  align-items: baseline; margin-bottom: 5px;
+}
+.ctrl-label {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 14px; color: var(--text);
+  font-style: italic; letter-spacing: 0.01em;
+}
+.ctrl-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px; color: var(--accent);
+  font-feature-settings: 'tnum' 1;
+}
+
+input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 1px; background: var(--border-hi);
+  cursor: pointer; outline: none; margin: 0;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--accent); cursor: pointer;
+  box-shadow: 0 0 12px var(--accent-dim);
+  transition: transform 0.18s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.4); }
+input[type="range"]::-moz-range-thumb {
+  width: 11px; height: 11px; border: none; border-radius: 50%;
+  background: var(--accent); cursor: pointer;
+  box-shadow: 0 0 12px var(--accent-dim);
+}
+
+#hud {
+  bottom: 0; left: 0; right: 0; padding: 10px 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 0.14em;
+  color: var(--muted); text-transform: uppercase;
+  border-radius: 0; border-left: none; border-right: none; border-bottom: none;
+  display: flex; justify-content: center; gap: 6px;
+  white-space: nowrap;
+}
+#hud .key {
+  display: inline-block; min-width: 18px; text-align: center;
+  padding: 2px 5px; margin: 0 2px;
+  border: 1px solid var(--border-hi);
+  background: rgba(244, 236, 214, 0.04);
+  color: var(--cream); border-radius: 2px;
+  font-size: 9px;
+}
+#hud > div { margin-bottom: 0; }
+
+#meta {
+  position: absolute; bottom: 24px; right: 24px;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic; font-size: 12px; color: var(--muted);
+  letter-spacing: 0.04em; z-index: 10; user-select: none;
+}
+
+#enter {
+  position: fixed; inset: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(7, 9, 20, 0.55);
+  backdrop-filter: blur(2px);
+  cursor: pointer;
+  transition: opacity 0.4s ease;
+}
+#enter.loading { pointer-events: none; }
+#enter.loading #enter-title { opacity: 0.4; }
+
+#enter.hidden { opacity: 0; pointer-events: none; }
+#enter-inner {
+  text-align: center;
+  border: 1px solid var(--border-hi);
+  background: var(--bg-panel);
+  padding: 32px 56px;
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+}
+#enter-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 0.3em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 14px;
+}
+#enter-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 36px; font-weight: 300; font-style: italic;
+  color: var(--cream); margin-bottom: 8px;
+}
+#enter-sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px; color: var(--muted); font-style: italic;
+}
+#enter-keys {
+  margin-top: 22px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted); letter-spacing: 0.1em;
+}
+#enter-keys .key {
+  display: inline-block; min-width: 18px; text-align: center;
+  padding: 3px 7px; margin: 0 3px;
+  border: 1px solid var(--border-hi);
+  color: var(--cream); border-radius: 2px;
+}
+
+#crosshair {
+  position: fixed; left: 50%; top: 50%;
+  width: 8px; height: 8px;
+  transform: translate(-50%, -50%);
+  pointer-events: none; z-index: 20;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+#crosshair::before, #crosshair::after {
+  content: ''; position: absolute;
+  background: var(--accent);
+  box-shadow: 0 0 4px var(--accent-dim);
+}
+#crosshair::before { left: 50%; top: 0; bottom: 0; width: 1px; transform: translateX(-50%); }
+#crosshair::after  { top: 50%; left: 0; right: 0; height: 1px; transform: translateY(-50%); }
+body.locked #crosshair { opacity: 0.5; }
+body.locked canvas { cursor: none; }
+
+.debug-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+.dbg-btn {
+  flex: 1 1 calc(50% - 3px); min-width: 60px;
+  padding: 7px 10px;
+  background: rgba(244, 236, 214, 0.04);
+  border: 1px solid var(--border-hi);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 1px;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+.dbg-btn:hover {
+  background: rgba(255, 184, 108, 0.12);
+  border-color: var(--accent);
+}
+.dbg-btn.off {
+  opacity: 0.35;
+  background: transparent;
+  color: var(--muted);
+}
+
+.dot { display: inline-block; animation: dot 1.4s infinite; }
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot {
+  0%, 60%, 100% { opacity: 0.2; }
+  30% { opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<div id="tag" class="panel">
+  <div class="tag-line">Scene · Lens Field · Multi-pass</div>
+  <div class="tag-title">The Pantheon - Temple Precinct</div>
+  <div class="tag-subtitle">Richard Qian Li. @ITP 2026</div>
+  <div class="tag-divider"></div>
+  <div class="tag-stats" id="stats">
+    Loading geometry<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+  </div>
+</div>
+
+<div id="controls-panel" class="panel">
+  <div id="controls-toggle" onclick="
+    const body = document.getElementById('controls-body');
+    const arrow = document.getElementById('controls-arrow');
+    if (body.style.display === 'none') {
+      body.style.display = 'block'; arrow.textContent = '▾';
+    } else {
+      body.style.display = 'none'; arrow.textContent = '▸';
+    }
+  " style="cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:9px;
+     letter-spacing:0.22em; text-transform:uppercase; color:var(--accent);
+     padding-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+    <span>Controls</span><span id="controls-arrow">▸</span>
+  </div>
+  <div id="controls-body" style="display:none;">
+
+  <div class="ctrl-section">
+    <div class="ctrl-section-label">Lens</div>
+    <div class="ctrl-row">
+      <div class="ctrl-label-line"><span class="ctrl-label">Lens size</span><span class="ctrl-val" id="lensRadius-val">1.40</span></div>
+      <input type="range" id="lensRadius" min="0.05" max="2.5" step="0.01" value="1.4">
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-label-line"><span class="ctrl-label">Mesh gain</span><span class="ctrl-val" id="meshGain-val">1.20</span></div>
+      <input type="range" id="meshGain" min="0.1" max="3.0" step="0.05" value="1.2">
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-label-line"><span class="ctrl-label">Pts gain</span><span class="ctrl-val" id="ptsGain-val">1.80</span></div>
+      <input type="range" id="ptsGain" min="0.1" max="3.0" step="0.05" value="1.8">
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-label-line"><span class="ctrl-label">Pts offset</span><span class="ctrl-val" id="ptsOff-val">0.40</span></div>
+      <input type="range" id="ptsOff" min="0.0" max="1.5" step="0.05" value="0.4">
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-label-line"><span class="ctrl-label">Grad power</span><span class="ctrl-val" id="gradPow-val">0.50</span></div>
+      <input type="range" id="gradPow" min="0.25" max="4.0" step="0.05" value="0.5">
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <div class="ctrl-section-label">Points</div>
+    <div class="ctrl-row">
+      <div class="ctrl-label-line"><span class="ctrl-label">Point size</span><span class="ctrl-val" id="pointSize-val">0.12</span></div>
+      <input type="range" id="pointSize" min="0.05" max="6" step="0.01" value="0.12">
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-label-line"><span class="ctrl-label">Float (center)</span><span class="ctrl-val" id="floatAmp-val">0.060</span></div>
+      <input type="range" id="floatAmp" min="0" max="1" step="0.005" value="0.06">
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-label-line"><span class="ctrl-label">Float (max)</span><span class="ctrl-val" id="maxFloat-val">2</span></div>
+      <input type="range" id="maxFloat" min="0" max="50" step="0.5" value="2">
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-label-line"><span class="ctrl-label">Float speed</span><span class="ctrl-val" id="floatSpeed-val">0.15</span></div>
+      <input type="range" id="floatSpeed" min="0" max="1" step="0.005" value="0.15">
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <div class="ctrl-section-label">Camera repulsion</div>
+    <div class="ctrl-row">
+      <div class="ctrl-label-line"><span class="ctrl-label">Radius</span><span class="ctrl-val" id="repulsionRadius-val">6.0</span></div>
+      <input type="range" id="repulsionRadius" min="0" max="30" step="0.5" value="6">
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-label-line"><span class="ctrl-label">Strength</span><span class="ctrl-val" id="repulsionStrength-val">1.50</span></div>
+      <input type="range" id="repulsionStrength" min="0" max="6" step="0.1" value="1.5">
+    </div>
+    <div class="ctrl-row">
+      <div class="ctrl-label-line"><span class="ctrl-label">Ember tint</span><span class="ctrl-val" id="hotTint-val">1.00</span></div>
+      <input type="range" id="hotTint" min="0" max="2" step="0.05" value="1">
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <div class="ctrl-section-label">Movement</div>
+    <div class="ctrl-row">
+      <div class="ctrl-label-line"><span class="ctrl-label">Walk speed</span><span class="ctrl-val" id="walkSpeed-val">5</span></div>
+      <input type="range" id="walkSpeed" min="1" max="30" step="0.5" value="5">
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <div class="ctrl-section-label">Debug</div>
+    <div class="debug-buttons">
+      <button class="dbg-btn" id="dbg-mesh">Mesh</button>
+      <button class="dbg-btn" id="dbg-points">Points</button>
+      <button class="dbg-btn" id="dbg-fog">Fog</button>
+      <button class="dbg-btn" id="dbg-wire">Wire</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div id="hud" class="panel">
+  <div>
+    <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> walk ·
+    <span class="key">Shift</span> sprint ·
+    <span class="key">Space</span>/<span class="key">Ctrl</span> rise/fall ·
+    <span class="key">Esc</span> release ·
+    <span class="key">[</span>/<span class="key">]</span> point size ·
+    <span class="key">O</span>/<span class="key">P</span> lens ·
+    <span class="key">K</span>/<span class="key">L</span> float ·
+    <span class="key">,</span>/<span class="key">.</span> repulsion ·
+    <span class="key">9</span>/<span class="key">0</span> ember
+  </div>
+</div>
+
+<div id="meta">three.js + composited shaders</div>
+
+<div id="enter" class="loading">
+  <div id="enter-inner">
+    <div id="enter-line">First-Person Lens</div>
+    <div id="enter-title">Loading…</div>
+    <div id="enter-sub">where you look is real; the rest is dust</div>
+    <div id="enter-keys">
+      <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span>
+      &nbsp;move &nbsp;·&nbsp;
+      <span class="key">Mouse</span> look
+      &nbsp;·&nbsp;
+      <span class="key">Esc</span> release · move cursor to scan
+    </div>
+  </div>
+</div>
+
+<div id="crosshair"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader }         from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader }        from 'three/addons/loaders/DRACOLoader.js';
+import { RGBELoader }         from 'three/addons/loaders/RGBELoader.js';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+// =============================================================
+//  CAMERA SPAWN — from Blender's Camera object (Z-up -> Y-up)
+// =============================================================
+const SPAWN = {
+  position: [-40.1863, 5.0399, 80.6616],
+  lookAt:   [-45.7073, 5.0399, 72.3236],
+};
+
+// =============================================================
+//  SCENE / RENDERER
+// =============================================================
+const scene = new THREE.Scene();
+const BG    = new THREE.Color(0x070914);
+scene.fog = new THREE.Fog(BG, 100, 800);
+// Note: scene.background is left null — we composite manually,
+// the renderer's clear color provides the background.
+
+const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 4000);
+// GLB loaded — enable the enter overlay
+    const enterEl2 = document.getElementById('enter');
+    enterEl2.classList.remove('loading');
+    document.getElementById('enter-title').textContent = 'Click to enter';
+
+    camera.position.fromArray(SPAWN.position);
+camera.lookAt(SPAWN.lookAt[0], SPAWN.lookAt[1], SPAWN.lookAt[2]);
+
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setClearColor(BG, 1);
+document.body.appendChild(renderer.domElement);
+
+// =============================================================
+//  LAYERS — for separating mesh and points into render passes
+// =============================================================
+const LAYER_DEFAULT = 0;
+const LAYER_MESH    = 1;
+const LAYER_POINTS  = 2;
+
+// =============================================================
+//  RENDER TARGETS — full color of each layer, composited later
+// =============================================================
+function makeRT() {
+  const dpr = renderer.getPixelRatio();
+  const w = innerWidth * dpr;
+  const h = innerHeight * dpr;
+  const rt = new THREE.WebGLRenderTarget(w, h, {
+    format: THREE.RGBAFormat,
+    type:   THREE.UnsignedByteType,
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    depthBuffer: true,    // mesh pass needs depth
+    stencilBuffer: false,
+  });
+  rt.texture.colorSpace = THREE.SRGBColorSpace;  // we render sRGB-ready colors
+  return rt;
+}
+let rtMesh   = makeRT();
+let rtPoints = makeRT();
+
+// =============================================================
+//  POINTER LOCK + WASD
+// =============================================================
+const controls = new PointerLockControls(camera, renderer.domElement);
+
+const move = { fwd: 0, right: 0, up: 0, sprint: false };
+let walkSpeed = 5;
+const sprintMul = 2.6;
+
+const enterEl = document.getElementById('enter');
+// =============================================================
+//  AUDIO — two looping tracks, started on first user interaction
+// =============================================================
+const audioTracks = [
+  { src: 'Shadows_on_the_Ziggurat.mp3', volume: 0.5 },
+  { src: '822917__hoshisato__flea-market.flac', volume: 0.8 },
+];
+const audioEls = audioTracks.map(t => {
+  const a = new Audio(t.src);
+  a.loop = true;
+  a.volume = t.volume;
+  a.preload = 'auto';
+  return a;
+});
+let audioStarted = false;
+function startAudio() {
+  if (audioStarted) return;
+  audioStarted = true;
+  audioEls.forEach(a => a.play().catch(() => {}));
+}
+
+function tryLock() {
+  if (!controls.isLocked) {
+    startAudio();
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+    try { controls.lock(); }
+    catch (e) { console.error('pointer lock failed:', e); }
+  }
+}
+enterEl.addEventListener('click', tryLock);
+renderer.domElement.addEventListener('click', tryLock);
+controls.addEventListener('lock',   () => { enterEl.classList.add('hidden'); document.body.classList.add('locked'); });
+controls.addEventListener('unlock', () => { enterEl.classList.remove('hidden'); document.body.classList.remove('locked'); });
+
+function nudgeSlider(id, delta) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const v = Math.max(parseFloat(el.min), Math.min(parseFloat(el.max),
+              parseFloat(el.value) + delta));
+  el.value = v;
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+document.addEventListener('keydown', (e) => {
+  if (controls.isLocked) {
+    switch (e.code) {
+      case 'KeyW': case 'ArrowUp':    move.fwd = 1;    return;
+      case 'KeyS': case 'ArrowDown':  move.fwd = -1;   return;
+      case 'KeyA': case 'ArrowLeft':  move.right = -1; return;
+      case 'KeyD': case 'ArrowRight': move.right = 1;  return;
+      case 'ShiftLeft': case 'ShiftRight': move.sprint = true; return;
+      case 'Space':       move.up = 1;  return;
+      case 'ControlLeft': move.up = -1; return;
+    }
+  }
+  switch (e.code) {
+    case 'BracketLeft':  nudgeSlider('pointSize',       -0.2); break;
+    case 'BracketRight': nudgeSlider('pointSize',        0.2); break;
+    case 'KeyO':         nudgeSlider('lensRadius',     -0.05); break;
+    case 'KeyP':         nudgeSlider('lensRadius',      0.05); break;
+    case 'KeyK':         nudgeSlider('maxFloat',        -1.0); break;
+    case 'KeyL':         nudgeSlider('maxFloat',         1.0); break;
+    case 'Comma':        nudgeSlider('repulsionRadius', -1.0); break;
+    case 'Period':       nudgeSlider('repulsionRadius',  1.0); break;
+    case 'Minus':        nudgeSlider('walkSpeed',       -1.0); break;
+    case 'Equal':        nudgeSlider('walkSpeed',        1.0); break;
+    case 'Semicolon':    nudgeSlider('floatAmp',       -0.01); break;
+    case 'Quote':        nudgeSlider('floatAmp',        0.01); break;
+    case 'Digit9':       nudgeSlider('hotTint',         -0.10); break;
+    case 'Digit0':       nudgeSlider('hotTint',          0.10); break;
+  }
+});
+document.addEventListener('keyup', (e) => {
+  switch (e.code) {
+    case 'KeyW': case 'ArrowUp':    if (move.fwd === 1)    move.fwd = 0;   break;
+    case 'KeyS': case 'ArrowDown':  if (move.fwd === -1)   move.fwd = 0;   break;
+    case 'KeyA': case 'ArrowLeft':  if (move.right === -1) move.right = 0; break;
+    case 'KeyD': case 'ArrowRight': if (move.right === 1)  move.right = 0; break;
+    case 'ShiftLeft': case 'ShiftRight': move.sprint = false; break;
+    case 'Space':       if (move.up === 1)  move.up = 0; break;
+    case 'ControlLeft': if (move.up === -1) move.up = 0; break;
+  }
+});
+
+const mouseNDC = new THREE.Vector2(0, 0);
+window.addEventListener('mousemove', (e) => {
+  if (controls.isLocked) return;
+  mouseNDC.x =  (e.clientX / innerWidth)  * 2 - 1;
+  mouseNDC.y = -((e.clientY / innerHeight) * 2 - 1);
+});
+
+// =============================================================
+//  SHARED UNIFORMS
+// =============================================================
+const U = {
+  uTime:              { value: 0 },
+  uCameraPos:         { value: new THREE.Vector3() },
+  uPointSize:         { value: 0.12 },
+  uFloatAmp:          { value: 0.06 },
+  uMaxFloatAmp:       { value: 2.0 },
+  uFloatSpeed:        { value: 0.15 },
+  uRepulsionRadius:   { value: 6.0 },
+  uRepulsionStrength: { value: 1.5 },
+  uHotTint:           { value: 1.0 },
+  uMousePos:          { value: new THREE.Vector2(0, 0) },
+  uLensInner:         { value: 0.0 },    // unused with new gradient formula
+  uLensOuter:         { value: 1.40 },
+  uAspect:            { value: 1.0 },
+  uFogColor:          { value: BG.clone() },
+  uFogNear:           { value: 30 },
+  uFogFar:            { value: 800 },
+  uFogEnabled:        { value: 1.0 },
+};
+
+// =============================================================
+//  SHADERS
+//  Both passes render at full alpha — the lens is applied
+//  in the composite pass via a per-pixel mix() between RTs.
+// =============================================================
+const meshVS = /* glsl */`
+  varying vec2  vUv;
+  varying float vViewZ;
+
+  void main() {
+    vec3 transformed = position;
+
+    vec4 mvPos = viewMatrix * modelMatrix * vec4(transformed, 1.0);
+    gl_Position = projectionMatrix * mvPos;
+    vUv = uv;
+    vViewZ = -mvPos.z;
+  }
+`;
+
+const meshFS = /* glsl */`
+  uniform sampler2D uTexture;
+  uniform bool      uUseTexture;
+  uniform vec3      uBaseColor;
+  uniform vec3      uFogColor;
+  uniform float     uFogNear;
+  uniform float     uFogFar;
+  uniform float     uFogEnabled;
+  varying vec2  vUv;
+  varying float vViewZ;
+  void main() {
+    vec3 base = uUseTexture ? texture2D(uTexture, vUv).rgb : uBaseColor;
+    float fogF = clamp((vViewZ - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
+    base = mix(base, uFogColor, fogF * uFogEnabled);
+    float alpha = uUseTexture ? 1.0 : 0.35;
+    gl_FragColor = vec4(base, alpha);
+  }
+`;
+
+const pointsVS = /* glsl */`
+  uniform float uTime;
+  uniform vec3  uCameraPos;
+  uniform float uPointSize;
+  uniform float uFloatAmp;
+  uniform float uMaxFloatAmp;
+  uniform float uFloatSpeed;
+  uniform float uRepulsionRadius;
+  uniform float uRepulsionStrength;
+  uniform vec2  uMousePos;
+  uniform float uLensInner;
+  uniform float uLensOuter;
+  uniform float uAspect;
+
+  varying vec2  vUv;
+  varying float vViewZ;
+  varying float vRepulsion;
+
+
+  attribute float aRandom;
+
+  float hash13(vec3 p) {
+    p = fract(p * vec3(443.8975, 397.2973, 491.1871));
+    p += dot(p, p.yzx + 19.19);
+    return fract((p.x + p.y) * p.z);
+  }
+
+  void main() {
+    vec3 transformed = position;
+
+    vec4 worldPos = modelMatrix * vec4(transformed, 1.0);
+
+    // Pre-displacement screen position drives float amplitude + size
+    vec4 projPre = projectionMatrix * viewMatrix * worldPos;
+    vec2 sPre = projPre.xy / max(projPre.w, 1e-5);
+    vec2 sPreA = vec2(sPre.x * uAspect, sPre.y);
+    vec2 mAsp  = vec2(uMousePos.x * uAspect, uMousePos.y);
+    float mdPre = distance(sPreA, mAsp);
+    float mouseFPre = smoothstep(uLensInner, uLensOuter, mdPre);
+
+    float amp = uFloatAmp + mouseFPre * mouseFPre * uMaxFloatAmp;
+
+    float h = aRandom * 6.2831853;
+    float ts = uTime * uFloatSpeed;
+    vec3 wave = vec3(
+      sin(ts * 0.7 + h),
+      cos(ts * 0.9 + h * 1.3),
+      sin(ts * 0.6 + h * 0.7 + 1.7)
+    ) * amp;
+    worldPos.xyz += wave;
+
+    // Camera repulsion
+    float repulsion = 0.0;
+    if (uRepulsionRadius > 0.001) {
+      vec3 toCam = worldPos.xyz - uCameraPos;
+      float dist = length(toCam);
+      if (dist < uRepulsionRadius) {
+        float k = 1.0 - dist / uRepulsionRadius;
+        repulsion = k * k * uRepulsionStrength;
+        worldPos.xyz += normalize(toCam + vec3(1e-5)) * repulsion;
+      }
+    }
+    vRepulsion = repulsion;
+
+    vec4 mvPos = viewMatrix * worldPos;
+    gl_Position = projectionMatrix * mvPos;
+
+    float sizeFactor = 1.0 + mouseFPre * 1.5;
+    gl_PointSize = uPointSize * (320.0 / -mvPos.z) * sizeFactor;
+    gl_PointSize = clamp(gl_PointSize, 1.0, 120.0);
+
+    vUv = uv;
+    vViewZ = -mvPos.z;
+  }
+`;
+
+const pointsFS = /* glsl */`
+  uniform sampler2D uTexture;
+  uniform bool      uUseTexture;
+  uniform vec3      uBaseColor;
+  uniform vec3      uFogColor;
+  uniform float     uFogNear;
+  uniform float     uFogFar;
+  uniform float     uFogEnabled;
+  uniform float     uHotTint;
+
+  varying vec2  vUv;
+  varying float vViewZ;
+  varying float vRepulsion;
+
+  void main() {
+    vec2 c = gl_PointCoord - 0.5;
+    float r = dot(c, c);
+    if (r > 0.25) discard;
+
+    vec3 base = uUseTexture ? texture2D(uTexture, vUv).rgb : uBaseColor;
+    vec3 ember = vec3(1.0, 0.65, 0.32);
+    base = mix(base, ember, clamp(vRepulsion * 0.85 * uHotTint, 0.0, 0.95));
+
+    float fogF = clamp((vViewZ - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
+    base = mix(base, uFogColor, fogF * uFogEnabled);
+
+    float alpha = uUseTexture ? 1.0 : 0.35;
+    gl_FragColor = vec4(base, alpha);
+  }
+`;
+
+// =============================================================
+//  COMPOSITE PASS — final mix between mesh RT and points RT
+// =============================================================
+const compScene  = new THREE.Scene();
+const compCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+const compMaterial = new THREE.ShaderMaterial({
+  uniforms: {
+    uMeshTex:   { value: rtMesh.texture },
+    uPointsTex: { value: rtPoints.texture },
+    uMousePos:  U.uMousePos,
+    uLensInner: U.uLensInner,
+    uLensOuter: U.uLensOuter,
+    uAspect:    U.uAspect,
+    uBg:        { value: new THREE.Color(0x070914) },
+    uMeshGain:  { value: 1.2 },
+    uPtsGain:   { value: 1.8 },
+    uPtsOff:    { value: 0.4 },
+    uGradPow:   { value: 0.5 },
+  },
+  vertexShader: /* glsl */`
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = vec4(position.xy, 0.0, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */`
+    uniform sampler2D uMeshTex;
+    uniform sampler2D uPointsTex;
+    uniform vec2  uMousePos;
+    uniform float uLensInner;
+    uniform float uLensOuter;
+    uniform float uAspect;
+    uniform vec3  uBg;
+    uniform float uMeshGain;
+    uniform float uPtsGain;
+    uniform float uPtsOff;
+    uniform float uGradPow;
+    varying vec2  vUv;
+
+    void main() {
+      // Per-pixel screen-space distance from mouse (NDC, aspect-corrected)
+      vec2 ndc = vUv * 2.0 - 1.0;
+      vec2 ndcA = vec2(ndc.x * uAspect, ndc.y);
+      vec2 mAsp = vec2(uMousePos.x * uAspect, uMousePos.y);
+      float md = distance(ndcA, mAsp);
+
+      float L = max(uLensOuter, 0.001);
+
+      // Linear gradients exactly as specified:
+      // SQUARED lens gradient — r² instead of r, giving the mesh a wider
+      // central plateau and sharper falloff at the rim. Points emerge more
+      // abruptly near the lens edge instead of fading in gradually.
+      float r  = md / L;
+      float rP = pow(r, uGradPow);
+      float wMesh = clamp(uMeshGain * (1.0 - rP),       0.0, 1.0);
+      float wPts  = clamp(uPtsGain * rP - uPtsOff,      0.0, 1.0);
+
+      vec4 mC = texture2D(uMeshTex,   vUv);
+      vec4 pC = texture2D(uPointsTex, vUv);
+
+      // Direct weighted blend — exactly the user's specified math.
+      // aM and aP are how much each layer is asked to contribute at this
+      // pixel; the rest fills with BG. No renormalization, so the gradient
+      // on the mesh stays VISIBLE: where wMesh is 0.7, the mesh is shown
+      // at 70% intensity, with the 30% remainder either taken by points
+      // (if a particle sits there) or by BG (if not).
+      float aM  = wMesh * mC.a;
+      float aP  = wPts  * pC.a;
+      float aBg = max(1.0 - aM - aP, 0.0);
+
+      vec3 color = aM * mC.rgb + aP * pC.rgb + aBg * uBg;
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `,
+  depthTest: false,
+  depthWrite: false,
+});
+
+const compQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), compMaterial);
+compQuad.frustumCulled = false;
+compScene.add(compQuad);
+
+// =============================================================
+//  MATERIALS
+// =============================================================
+function makeMeshMaterial(textureMap) {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      uTexture:    { value: textureMap },
+      uUseTexture: { value: !!textureMap },
+      uBaseColor:  { value: new THREE.Color(0.996, 0.722, 0.424) },  // amber
+      uFogColor:   U.uFogColor,
+      uFogNear:    U.uFogNear,
+      uFogFar:     U.uFogFar,
+      uFogEnabled: U.uFogEnabled,
+    },
+    vertexShader: meshVS,
+    fragmentShader: meshFS,
+    transparent: !textureMap,
+    depthWrite: !!textureMap,
+    depthTest:  true,
+    side: THREE.DoubleSide,
+  });
+}
+
+function makePointMaterial(textureMap) {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      ...U,
+      uTexture:    { value: textureMap || null },
+      uUseTexture: { value: !!textureMap },
+      uBaseColor:  { value: new THREE.Color(0.996, 0.722, 0.424) },  // amber for untextured figures
+    },
+    vertexShader: pointsVS,
+    fragmentShader: pointsFS,
+    transparent: false,
+    depthWrite: true,
+    depthTest:  true,
+  });
+}
+
+// =============================================================
+//  SUBSAMPLING (points only)
+// =============================================================
+function subsampleGeometry(geo, stride) {
+  // If stride is 1 AND the source geometry has no extra attrs we want to *strip*,
+  // we could return geo directly — but we always rebuild so that the points
+  // geometry doesn't share index buffers with the mesh (which would cause it to
+  // render as triangles via the indices).
+  const pos = geo.attributes.position;
+  const uv  = geo.attributes.uv;
+  const total = pos.count;
+  const kept  = stride > 1 ? Math.floor(total / stride) : total;
+
+  const newPos = new Float32Array(kept * 3);
+  const newUv  = uv ? new Float32Array(kept * 2) : null;
+  
+  const posArr = pos.array;
+  const uvArr  = uv  ? uv.array  : null;
+
+  for (let j = 0; j < kept; j++) {
+    const i = j * stride;
+    newPos[j*3]   = posArr[i*3];
+    newPos[j*3+1] = posArr[i*3+1];
+    newPos[j*3+2] = posArr[i*3+2];
+    if (newUv) {
+      newUv[j*2]   = uvArr[i*2];
+      newUv[j*2+1] = uvArr[i*2+1];
+    }
+  }
+  // Per-vertex random phase — breaks the coherent swirl that hash13(position)
+  // produces when all vertices sit in a tight world-space box.
+  const newRand = new Float32Array(kept);
+  for (let j = 0; j < kept; j++) newRand[j] = Math.random();
+
+  const ng = new THREE.BufferGeometry();
+  ng.setAttribute('position', new THREE.BufferAttribute(newPos, 3));
+  if (newUv)   ng.setAttribute('uv',         new THREE.BufferAttribute(newUv, 2));
+  ng.setAttribute('aRandom',  new THREE.BufferAttribute(newRand, 1));
+  // Per-vertex random — guaranteed uncorrelated phase across vertices regardless of
+  // their world-space coords. (hash13(position) gives near-coherent phases when all
+  // verts are inside a tight world-space box, e.g. a 1.7m skinned character.)
+  ng.computeBoundingSphere();
+  // Generous bounding sphere padding — skinned points can move far from rest pose
+  if (ng.boundingSphere) ng.boundingSphere.radius += 30;
+  return ng;
+}
+function pickStride(vertCount, hasTexture = true) {
+  if (!hasTexture)          return 10; // figures — 1/10 density
+  if (vertCount > 500000) return 4;  // tents (~685K) — sparse
+  return 1;                          // temple (~316K) and below — full density
+}
+
+// =============================================================
+//  LOAD GLB → assign each mesh + its points to separate layers
+// =============================================================
+const loader = new GLTFLoader();
+const draco  = new DRACOLoader();
+draco.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+loader.setDRACOLoader(draco);
+
+// =============================================================
+//  HDR SKY — applied only to the mesh pass via scene.background
+//  swapping in the tick loop. Stays out of the points pass so
+//  the lens-gradient composite at the edges falls back to uBg.
+// =============================================================
+window._hdrTexture = null;
+window._showHdr = true;
+new RGBELoader().load(
+  'minedump_flats_4k.hdr',
+  (tex) => {
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    tex.colorSpace = THREE.LinearSRGBColorSpace;
+    window._hdrTexture = tex;
+  },
+  undefined,
+  (err) => {
+    console.warn('HDR sky failed to load — falling back to flat BG. Error:', err);
+  }
+);
+
+const statsEl = document.getElementById('stats');
+const t0 = performance.now();
+
+window._allMeshes = [];
+
+loader.load(
+  'scene_full.glb',
+  (gltf) => {
+    const root = gltf.scene;
+    scene.add(root);
+
+    // Collect SkinnedMesh and regular Mesh separately
+    const meshes = [];
+    root.traverse((n) => { if (n.isMesh && n.geometry) meshes.push(n); });
+
+    const meshMatCache = new Map();
+    const ptMatCache   = new Map();
+    const ptGeoCache   = new Map();
+    let totalPoints = 0, pointObjs = 0, meshObjs = 0, originalVerts = 0;
+
+    for (const mesh of meshes) {
+      const map = mesh.material?.map || null;
+      if (map) map.colorSpace = THREE.SRGBColorSpace;
+
+      // -------- Mesh — assigned to LAYER_MESH --------
+      // Cache materials by texture
+      const mKey = (map ? map.uuid : 'none');
+      let mMat = meshMatCache.get(mKey);
+      if (!mMat) { mMat = makeMeshMaterial(map); meshMatCache.set(mKey, mMat); }
+      mesh.material = mMat;
+      mesh.layers.set(LAYER_MESH);
+      meshObjs++;
+      originalVerts += mesh.geometry.attributes.position.count;
+      window._allMeshes.push(mesh);
+
+      // -------- Points — assigned to LAYER_POINTS --------
+      // Figures (no texture) get mesh only, no point cloud
+      if (!map) continue;
+
+      const srcGeo = mesh.geometry;
+      let ptGeo = ptGeoCache.get(srcGeo.uuid);
+      if (!ptGeo) {
+        const stride = pickStride(srcGeo.attributes.position.count, !!map);
+        ptGeo = subsampleGeometry(srcGeo, stride);
+        ptGeoCache.set(srcGeo.uuid, ptGeo);
+      }
+      const pKey = (map ? map.uuid : 'none');
+      let pMat = ptMatCache.get(pKey);
+      if (!pMat) { pMat = makePointMaterial(map); ptMatCache.set(pKey, pMat); }
+
+      const points = new THREE.Points(ptGeo, pMat);
+      points.position.copy(mesh.position);
+      points.quaternion.copy(mesh.quaternion);
+      points.scale.copy(mesh.scale);
+      points.frustumCulled = false;
+      points.layers.set(LAYER_POINTS);
+
+      mesh.parent.add(points);
+
+      totalPoints += ptGeo.attributes.position.count;
+      pointObjs++;
+    }
+
+
+    // GLB loaded — enable the enter overlay
+    const enterEl2 = document.getElementById('enter');
+    enterEl2.classList.remove('loading');
+    document.getElementById('enter-title').textContent = 'Click to enter';
+
+    camera.position.fromArray(SPAWN.position);
+    camera.lookAt(SPAWN.lookAt[0], SPAWN.lookAt[1], SPAWN.lookAt[2]);
+
+    const box = new THREE.Box3().setFromObject(root);
+    const diag = box.getSize(new THREE.Vector3()).length();
+    U.uFogNear.value = 30;
+    U.uFogFar.value  = Math.max(diag * 1.2, 200);
+
+    const loadMs = performance.now() - t0;
+    const animCount = (gltf.animations && gltf.animations.length) || 0;
+    statsEl.innerHTML = `
+      <span class="v">${meshObjs}</span> meshes · <span class="v">${(originalVerts/1e6).toFixed(2)}M</span> verts<br>
+      <span class="v">${pointObjs}</span> point sets · <span class="v">${(totalPoints/1e6).toFixed(2)}M</span> points<br>
+      <span class="v">3-pass</span> composite · <span class="v">${animCount}</span> anim · <span class="v">${Math.round(diag)}</span>m · <span class="v">${(loadMs/1000).toFixed(1)}</span>s
+    `;
+  },
+  (xhr) => {
+    if (xhr.lengthComputable && xhr.total > 0) {
+      const pct = (xhr.loaded / xhr.total * 100).toFixed(0);
+      statsEl.innerHTML = `Loading geometry · <span class="v">${pct}%</span>`;
+    }
+  },
+  (err) => {
+    console.error(err);
+    statsEl.innerHTML =
+      `<span style="color:#ff8a6c">Could not load <code>scene_full.glb</code></span><br>
+       Check the browser console.`;
+  },
+);
+
+// =============================================================
+//  UI BINDINGS
+// =============================================================
+function bindSlider(id, fmt, onChange) {
+  const inp = document.getElementById(id);
+  const val = document.getElementById(id + '-val');
+  inp.addEventListener('input', () => {
+    const v = parseFloat(inp.value);
+    onChange(v);
+    val.textContent = fmt(v);
+  });
+}
+bindSlider('pointSize',         v => v.toFixed(2), v => U.uPointSize.value = v);
+bindSlider('floatAmp',          v => v.toFixed(3), v => U.uFloatAmp.value  = v);
+bindSlider('maxFloat',          v => v.toFixed(0), v => U.uMaxFloatAmp.value = v);
+bindSlider('floatSpeed',        v => v.toFixed(2), v => U.uFloatSpeed.value  = v);
+bindSlider('lensRadius',        v => v.toFixed(2), v => {
+  U.uLensOuter.value = v;
+});
+bindSlider('meshGain',  v => v.toFixed(2), v => compMaterial.uniforms.uMeshGain.value = v);
+bindSlider('ptsGain',   v => v.toFixed(2), v => compMaterial.uniforms.uPtsGain.value  = v);
+bindSlider('ptsOff',    v => v.toFixed(2), v => compMaterial.uniforms.uPtsOff.value   = v);
+bindSlider('gradPow',   v => v.toFixed(2), v => compMaterial.uniforms.uGradPow.value  = v);
+bindSlider('repulsionRadius',   v => v.toFixed(1), v => U.uRepulsionRadius.value = v);
+bindSlider('repulsionStrength', v => v.toFixed(2), v => U.uRepulsionStrength.value = v);
+bindSlider('hotTint',           v => v.toFixed(2), v => U.uHotTint.value = v);
+bindSlider('walkSpeed',         v => v.toFixed(0), v => walkSpeed = v);
+
+// =============================================================
+//  ANIMATE  ·  3-pass: meshes → rtMesh, points → rtPoints, composite → screen
+// =============================================================
+const clock = new THREE.Clock();
+function tick() {
+  requestAnimationFrame(tick);
+  const dt = Math.min(clock.getDelta(), 0.1);
+
+  if (controls.isLocked) {
+    U.uMousePos.value.set(0, 0);
+    const s = walkSpeed * (move.sprint ? sprintMul : 1);
+    if (move.fwd)   controls.moveForward(move.fwd   * s * dt);
+    if (move.right) controls.moveRight(  move.right * s * dt);
+    if (move.up)    camera.position.y += move.up    * s * dt;
+  } else {
+    U.uMousePos.value.copy(mouseNDC);
+  }
+  U.uAspect.value = innerWidth / innerHeight;
+  U.uTime.value = clock.getElapsedTime();
+  U.uCameraPos.value.copy(camera.position);
+
+  // Advance skeletal + object animations (back-and-forth walkers, pinned standers)
+
+  // ---- Pass 1: mesh layer → rtMesh (HDR sky shows here) ----
+  camera.layers.set(LAYER_MESH);
+  renderer.setRenderTarget(rtMesh);
+  // Mesh pass uses HDR sky as background where geometry doesn't draw.
+  // Setting scene.background to a texture makes three.js render it as a
+  // screen-filling equirect sky behind all scene content.
+  scene.background = (window._showHdr && window._hdrTexture) ? window._hdrTexture : null;
+  renderer.setClearColor(0x000000, 0);
+  renderer.clear(true, true, false);
+  renderer.render(scene, camera);
+
+  // ---- Pass 2: points layer → rtPoints (no HDR — keep clean transparent BG) ----
+  camera.layers.set(LAYER_POINTS);
+  renderer.setRenderTarget(rtPoints);
+  scene.background = null;
+  renderer.setClearColor(0x000000, 0);
+  renderer.clear(true, true, false);
+  renderer.render(scene, camera);
+
+  // ---- Pass 3: composite to screen ----
+  camera.layers.enableAll();
+  renderer.setRenderTarget(null);
+  renderer.setClearColor(BG, 1);
+  renderer.clear(true, true, false);
+  renderer.render(compScene, compCamera);
+}
+tick();
+
+// =============================================================
+//  RESIZE — also resize the render targets
+// =============================================================
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  const dpr = renderer.getPixelRatio();
+  rtMesh.setSize(innerWidth * dpr, innerHeight * dpr);
+  rtPoints.setSize(innerWidth * dpr, innerHeight * dpr);
+});
+
+// =============================================================
+//  DEBUG TOGGLES
+// =============================================================
+function makeToggle(id, initial, onChange) {
+  const btn = document.getElementById(id);
+  let on = initial;
+  btn.classList.toggle('off', !on);
+  btn.addEventListener('click', () => {
+    on = !on;
+    btn.classList.toggle('off', !on);
+    onChange(on);
+  });
+}
+makeToggle('dbg-mesh',   true, (on) => {
+  (window._allMeshes || []).forEach(m => m.visible = on);
+});
+makeToggle('dbg-points', true, (on) => {
+  (window._allPoints || []).forEach(p => p.visible = on);
+});
+makeToggle('dbg-fog',    true, (on) => {
+  U.uFogEnabled.value = on ? 1.0 : 0.0;
+});
+makeToggle('dbg-wire',   false, (on) => {
+  (window._allMeshes || []).forEach(m => {
+    if (m.material) m.material.wireframe = on;
+  });
+});
+</script>
+</body>
+</html>
