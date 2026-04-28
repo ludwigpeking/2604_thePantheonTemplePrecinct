@@ -418,6 +418,7 @@ import { GLTFLoader }         from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader }        from 'three/addons/loaders/DRACOLoader.js';
 import { RGBELoader }         from 'three/addons/loaders/RGBELoader.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 1024);
 
 // =============================================================
 //  CAMERA SPAWN — from Blender's Camera object (Z-up -> Y-up)
@@ -483,7 +484,6 @@ let rtPoints = makeRT();
 // =============================================================
 //  POINTER LOCK + WASD
 // =============================================================
-const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 1024);
 const controls = new PointerLockControls(camera, renderer.domElement);
 
 const move = { fwd: 0, right: 0, up: 0, sprint: false };
